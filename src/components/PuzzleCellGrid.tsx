@@ -238,19 +238,19 @@ const PuzzleCellGrid = forwardRef<PuzzleCellGridHandle,Props>((props,ref) => {
             }
         }
         document.addEventListener("keydown",keyEvent);
-        return () =>  document.removeEventListener("keydown",keyEvent);
+        return () => document.removeEventListener("keydown",keyEvent);
     });
 
     useImperativeHandle(ref, () => ({
         getData: () => puzzleData,
-        setData: (newData: ReactElement[][]) => {
+        setData: newData => {
             console.assert(newData.length === R && newData[0].length === C,
                 "PuzzleCellGrid.setData(): incorrect data size");
             setPuzzleData(newData);
             setData(buildData());
         },
         getStyles: () => puzzleStyles,
-        setStyles: (newStyles: CSS.Properties[][]) => {
+        setStyles: newStyles => {
             console.assert(newStyles.length === R && newStyles[0].length === C,
                 "PuzzleCellGrid.setStyles(): incorrect styles size");
             setPuzzleStyles(newStyles);
@@ -264,25 +264,25 @@ const PuzzleCellGrid = forwardRef<PuzzleCellGridHandle,Props>((props,ref) => {
         getLabelsRdata: () => labelsRdata,
         getLabelsTdata: () => labelsTdata,
         getLabelsBdata: () => labelsBdata,
-        setLabelsLdata: (newLabels: ReactElement[][]) => {
+        setLabelsLdata: newLabels => {
             console.assert(newLabels.length === lL && newLabels[0].length === R,
                 "PuzzleCellGrid.setLabelsLdata(): incorrect labels size");
             setLabelsLdata(newLabels);
             setData(buildData());
         },
-        setLabelsRdata: (newLabels: ReactElement[][]) => {
+        setLabelsRdata: newLabels => {
             console.assert(newLabels.length === lR && newLabels[0].length === R,
                 "PuzzleCellGrid.setLabelsRdata(): incorrect labels size");
             setLabelsRdata(newLabels);
             setData(buildData());
         },
-        setLabelsTdata: (newLabels: ReactElement[][]) => {
+        setLabelsTdata: newLabels => {
             console.assert(newLabels.length === lT && newLabels[0].length === C,
                 "PuzzleCellGrid.setLabelsTdata(): incorrect labels size");
             setLabelsTdata(newLabels);
             setData(buildData());
         },
-        setLabelsBdata: (newLabels: ReactElement[][]) => {
+        setLabelsBdata: newLabels => {
             console.assert(newLabels.length === lB && newLabels[0].length === C,
                 "PuzzleCellGrid.setLabelsBdata(): incorrect labels size");
             setLabelsBdata(newLabels);
@@ -292,25 +292,25 @@ const PuzzleCellGrid = forwardRef<PuzzleCellGridHandle,Props>((props,ref) => {
         getLabelsRstyles: () => labelsRstyles,
         getLabelsTstyles: () => labelsTstyles,
         getLabelsBstyles: () => labelsBstyles,
-        setLabelsLstyles: (newStyles: CSS.Properties[][]) => {
+        setLabelsLstyles: newStyles => {
             console.assert(newStyles.length === lL && newStyles[0].length === R,
                 "PuzzleCellGrid.setLabelsLdata(): incorrect labels size");
             setLabelsLstyles(newStyles);
             setStyles(buildStyles());
         },
-        setLabelsRstyles: (newStyles: CSS.Properties[][]) => {
+        setLabelsRstyles: newStyles => {
             console.assert(newStyles.length === lR && newStyles[0].length === R,
                 "PuzzleCellGrid.setLabelsRdata(): incorrect labels size");
             setLabelsRstyles(newStyles);
             setStyles(buildStyles());
         },
-        setLabelsTstyles: (newStyles: CSS.Properties[][]) => {
+        setLabelsTstyles: newStyles => {
             console.assert(newStyles.length === lT && newStyles[0].length === C,
                 "PuzzleCellGrid.setLabelsTdata(): incorrect labels size");
             setLabelsTstyles(newStyles);
             setStyles(buildStyles());
         },
-        setLabelsBstyles: (newStyles: CSS.Properties[][]) => {
+        setLabelsBstyles: newStyles => {
             console.assert(newStyles.length === lB && newStyles[0].length === C,
                 "PuzzleCellGrid.setLabelsBdata(): incorrect labels size");
             setLabelsBstyles(newStyles);
@@ -337,4 +337,4 @@ const PuzzleCellGrid = forwardRef<PuzzleCellGridHandle,Props>((props,ref) => {
 });
 
 export default PuzzleCellGrid;
-export type {PuzzleCellGridHandle};
+export type {PuzzleCellGridHandle, Props as PuzzleCellGridProps};

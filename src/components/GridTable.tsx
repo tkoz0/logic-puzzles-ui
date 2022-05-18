@@ -12,7 +12,7 @@ interface Props {
  * Component to render an HTML table of size R*C with styles given to the cells
  * and grid, along with a click action for cells based on the coordinate.
  */
-const GridTable: FC<Props> = (props) => {
+const GridTable: FC<Props> = props => {
     console.assert(props.data.length > 0 && props.data[0].length > 0,
         "GridTable: empty data");
     console.assert(props.styles.length === props.data.length
