@@ -4,35 +4,15 @@ import GridTable from "./GridTable";
 import {in2DArray, range} from "../utils/ArrayUtils";
 
 interface PuzzleCellGridHandle {
-    // main data and styles
-    getData: () => ReactElement[][],
-    setData: (newData: ReactElement[][]) => void,
-    getStyles: () => CSS.Properties[][],
-    setStyles: (newStyles: CSS.Properties[][]) => void,
     // main internal representation
     getFullData: () => ReactElement[][],
     getFullStyles: () => CSS.Properties[][],
+    // update data when passed properties change
+    updateData: () => void,
+    updateStyles: () => void,
     // selected cell
     getSelected: () => [number,number],
     setSelected: (r: number, c: number) => void,
-    // labels data
-    getLabelsLdata: () => ReactElement[][],
-    getLabelsRdata: () => ReactElement[][],
-    getLabelsTdata: () => ReactElement[][],
-    getLabelsBdata: () => ReactElement[][],
-    setLabelsLdata: (newLabels: ReactElement[][]) => void,
-    setLabelsRdata: (newLabels: ReactElement[][]) => void,
-    setLabelsTdata: (newLabels: ReactElement[][]) => void,
-    setLabelsBdata: (newLabels: ReactElement[][]) => void,
-    // labels styles
-    getLabelsLstyles: () => CSS.Properties[][],
-    getLabelsRstyles: () => CSS.Properties[][],
-    getLabelsTstyles: () => CSS.Properties[][],
-    getLabelsBstyles: () => CSS.Properties[][],
-    setLabelsLstyles: (newStyles: CSS.Properties[][]) => void,
-    setLabelsRstyles: (newStyles: CSS.Properties[][]) => void,
-    setLabelsTstyles: (newStyles: CSS.Properties[][]) => void,
-    setLabelsBstyles: (newStyles: CSS.Properties[][]) => void
 }
 
 interface Props {
@@ -85,56 +65,47 @@ const PuzzleCellGrid = forwardRef<PuzzleCellGridHandle,Props>((props,ref) => {
     const lB = props.labelsBdata?.length ?? 0;
     const fR = R+lT+lB; // full size of table with labels included
     const fC = C+lL+lR;
-    // arrays passed from parent to allow changing
-    const [puzzleData,setPuzzleData] = useState(props.data);
-    const [puzzleStyles,setPuzzleStyles] = useState(props.styles);
-    const [labelsLdata,setLabelsLdata] = useState(props.labelsLdata ?? []);
-    const [labelsRdata,setLabelsRdata] = useState(props.labelsRdata ?? []);
-    const [labelsTdata,setLabelsTdata] = useState(props.labelsTdata ?? []);
-    const [labelsBdata,setLabelsBdata] = useState(props.labelsBdata ?? []);
-    const [labelsLstyles,setLabelsLstyles] = useState(props.labelsLstyles ?? []);
-    const [labelsRstyles,setLabelsRstyles] = useState(props.labelsRstyles ?? []);
-    const [labelsTstyles,setLabelsTstyles] = useState(props.labelsTstyles ?? []);
-    const [labelsBstyles,setLabelsBstyles] = useState(props.labelsBstyles ?? []);
     // selected cell
-    const [selected,setSelected] = useState<[number,number]>([-1,-1]);
+    const [selected,_setSelected] = useState<[number,number]>([-1,-1]);
 
     /**
-     * @returns 2d array of elements for the table cells
+     * @returns 2d array of elements for the table cells made from the props
      */
     const buildData = (): ReactElement[][] => range(fR).map(r => range(fC).map(c => {
         const [gr,gc] = [r-lT,c-lL];
         if (in2DArray(gr,gc,R,C))
-            return puzzleData[gr][gc];
+            return props.data[gr][gc];
         else if (r < lT) {
             if (c < lL) return <></>; // top left corner
             else if (gc >= C) return <></> // top right corner
-            else return labelsTdata?.[r][gc] ?? <></>; // top labels
+            else return props.labelsTdata?.[r][gc] ?? <></>; // top labels
         } else if (gr >= R) {
             if (c < lL) return <></>; // bottom left corner
             else if (gc >= C) return <></>; // top right corner
-            else return labelsBdata?.[gr-R][gc] ?? <></>; // bottom labels
+            else return props.labelsBdata?.[gr-R][gc] ?? <></>; // bottom labels
         } else { // middle section
-            if (c < lL) return labelsLdata?.[c][gr] ?? <></>; // left labels
-            else return labelsRdata?.[gc-C][gr] ?? <></>; // right labels
+            if (c < lL) return props.labelsLdata?.[c][gr] ?? <></>; // left labels
+            else return props.labelsRdata?.[gc-C][gr] ?? <></>; // right labels
         }
     }));
 
     /**
-     * @returns 2d array of styles for the table cells
+     * @returns 2d array of styles for the table cells made from the props
      */
     const buildStyles = (): CSS.Properties[][] => range(fR).map(r => range(fC).map(c => {
         const [gr,gc] = [r-lT,c-lL]; // coordinates in the puzzle grid
-        let baseStyle = {
+        let style: CSS.Properties = {
             height: (props.heightpx ?? 50)+"px",
             width:  (props.widthpx  ?? 50)+"px"
         }
+        const noStyle = (_r: number, _c: number) =>
+            range(Math.max(lL,lR,lT,lB)).map(_n => ({}));
         if (in2DArray(gr,gc,R,C)) {
-            let style = {
-                ...baseStyle,
-                ...puzzleStyles[gr][gc]
+            style = { // add cell style
+                ...style,
+                ...props.styles[gr][gc]
             };
-            if (gr === selected[0] && gc === selected[1])
+            if (gr === selected[0] && gc === selected[1]) // add select style
                 return {
                     ...style,
                     ...props.getSelectStyle(gr,gc)
@@ -142,17 +113,42 @@ const PuzzleCellGrid = forwardRef<PuzzleCellGridHandle,Props>((props,ref) => {
             else
                 return style;
         } else if (r < lT) {
-            if (c < lL) return baseStyle;
-            else if (gc >= C) return baseStyle;
-            else return labelsTstyles?.[r][gc] ?? baseStyle;
+            if (c < lL) {} // top left
+            else if (gc >= C) {} // top right
+            else { // top
+                style = { ...style, ...props.labelsTstyles?.[r][gc] }
+                if (gc === selected[1]) {
+                    let sT = (props.getSelectStylesL ?? noStyle)(gr,gc);
+                    style = { ...style, ...sT[r] };
+                }
+            };
         } else if (gr >= R) {
-            if (c < lL) return baseStyle;
-            else if (gc >= C) return baseStyle;
-            else return labelsBstyles?.[gr-R][gc] ?? baseStyle;
+            if (c < lL) {} // bottom left
+            else if (gc >= C) {} // bottom right
+            else { // bottom
+                style = { ...style, ...props.labelsBstyles?.[gr-R][gc] };
+                if (gc === selected[1]) {
+                    let sB = (props.getSelectStylesB ?? noStyle)(gr,gc);
+                    style = { ...style, ...sB[gr-R] };
+                }
+            }
         } else {
-            if (c < lL) return labelsLstyles?.[c][gr] ?? baseStyle;
-            else return labelsRstyles?.[gc-C][gr] ?? baseStyle;
+            if (c < lL) { // left
+                style = { ...style, ...props.labelsLstyles?.[c][gr] };
+                if (gr === selected[0]) {
+                    let sL = (props.getSelectStylesL ?? noStyle)(gr,gc);
+                    style = { ...style, ...sL[c] };
+                }
+            }
+            else { // right
+                style = { ...style, ...props.labelsRstyles?.[gc-C][gr] };
+                if (gr === selected[0]) {
+                    let sR = (props.getSelectStylesR ?? noStyle)(gr,gc);
+                    style = { ...style, ...sR[gc-C] };
+                }
+            }
         }
+        return style;
     }));
 
     // state for the GridTable component
@@ -165,48 +161,14 @@ const PuzzleCellGrid = forwardRef<PuzzleCellGridHandle,Props>((props,ref) => {
      * @param pr row
      * @param pc column
      */
-    const changeSelection = (pr: number, pc: number) => {
+    const changeSelection = (pr: number, pc: number, click?: boolean) => {
         let r = pr;
         let c = pc;
         const [sr,sc] = selected;
-        if (r === sr && c === sc) {
+        if (click && r === sr && c === sc) { // unselect if same coordinates on click
             r = -1;
             c = -1;
         }
-        // function to make empty styles for when label selection styles are not defined
-        // const noStyle = (_r: number, _c: number) =>
-        //     range(Math.max(lL,lR,lT,lB)).map(_n => ({}));
-        // const newStyles = buildStyles();
-        // if (in2DArray(r,c,R,C)) {
-        //     newStyles[lT+r][lL+c] = {
-        //         ...newStyles[lT+r][lL+c],
-        //         ...props.getSelectStyle(r,c)
-        //     }
-        //     const sL = (props.getSelectStylesL ?? noStyle)(r,c);
-        //     const sR = (props.getSelectStylesR ?? noStyle)(r,c);
-        //     const sT = (props.getSelectStylesT ?? noStyle)(r,c);
-        //     const sB = (props.getSelectStylesB ?? noStyle)(r,c);
-        //     for (let i = 0; i < lL; ++i)
-        //         newStyles[lT+r][i] = {
-        //             ...newStyles[lT+r][i],
-        //             ...sL[i]
-        //         }
-        //     for (let i = 0; i < lR; ++i)
-        //         newStyles[lT+r][lL+C+i] = {
-        //             ...newStyles[lT+r][lL+C+i],
-        //             ...sR[i]
-        //         }
-        //     for (let i = 0; i < lT; ++i)
-        //         newStyles[i][lL+c] = {
-        //             ...newStyles[i][lL+c],
-        //             ...sT[i]
-        //         }
-        //     for (let i = 0; i < lB; ++i)
-        //         newStyles[lT+R+i][lL+c] = {
-        //             ...newStyles[lT+R+i][lL+c],
-        //             ...sB[i]
-        //         }
-        // }
         selected[0] = r;
         selected[1] = c;
         setStyles(buildStyles());
@@ -251,80 +213,12 @@ const PuzzleCellGrid = forwardRef<PuzzleCellGridHandle,Props>((props,ref) => {
     });
 
     useImperativeHandle(ref, () => ({
-        getData: () => puzzleData,
-        setData: newData => {
-            console.assert(newData.length === R && newData[0].length === C,
-                "PuzzleCellGrid.setData(): incorrect data size");
-            setPuzzleData(newData);
-            setData(buildData());
-        },
-        getStyles: () => puzzleStyles,
-        setStyles: newStyles => {
-            console.assert(newStyles.length === R && newStyles[0].length === C,
-                "PuzzleCellGrid.setStyles(): incorrect styles size");
-            setPuzzleStyles(newStyles);
-            setStyles(buildStyles());
-        },
         getFullData: () => data,
         getFullStyles: () => styles,
         getSelected: () => selected,
         setSelected: (r,c) => changeSelection(r,c),
-        getLabelsLdata: () => labelsLdata,
-        getLabelsRdata: () => labelsRdata,
-        getLabelsTdata: () => labelsTdata,
-        getLabelsBdata: () => labelsBdata,
-        setLabelsLdata: newLabels => {
-            console.assert(newLabels.length === lL && newLabels[0].length === R,
-                "PuzzleCellGrid.setLabelsLdata(): incorrect labels size");
-            setLabelsLdata(newLabels);
-            setData(buildData());
-        },
-        setLabelsRdata: newLabels => {
-            console.assert(newLabels.length === lR && newLabels[0].length === R,
-                "PuzzleCellGrid.setLabelsRdata(): incorrect labels size");
-            setLabelsRdata(newLabels);
-            setData(buildData());
-        },
-        setLabelsTdata: newLabels => {
-            console.assert(newLabels.length === lT && newLabels[0].length === C,
-                "PuzzleCellGrid.setLabelsTdata(): incorrect labels size");
-            setLabelsTdata(newLabels);
-            setData(buildData());
-        },
-        setLabelsBdata: newLabels => {
-            console.assert(newLabels.length === lB && newLabels[0].length === C,
-                "PuzzleCellGrid.setLabelsBdata(): incorrect labels size");
-            setLabelsBdata(newLabels);
-            setData(buildData());
-        },
-        getLabelsLstyles: () => labelsLstyles,
-        getLabelsRstyles: () => labelsRstyles,
-        getLabelsTstyles: () => labelsTstyles,
-        getLabelsBstyles: () => labelsBstyles,
-        setLabelsLstyles: newStyles => {
-            console.assert(newStyles.length === lL && newStyles[0].length === R,
-                "PuzzleCellGrid.setLabelsLdata(): incorrect labels size");
-            setLabelsLstyles(newStyles);
-            setStyles(buildStyles());
-        },
-        setLabelsRstyles: newStyles => {
-            console.assert(newStyles.length === lR && newStyles[0].length === R,
-                "PuzzleCellGrid.setLabelsRdata(): incorrect labels size");
-            setLabelsRstyles(newStyles);
-            setStyles(buildStyles());
-        },
-        setLabelsTstyles: newStyles => {
-            console.assert(newStyles.length === lT && newStyles[0].length === C,
-                "PuzzleCellGrid.setLabelsTdata(): incorrect labels size");
-            setLabelsTstyles(newStyles);
-            setStyles(buildStyles());
-        },
-        setLabelsBstyles: newStyles => {
-            console.assert(newStyles.length === lB && newStyles[0].length === C,
-                "PuzzleCellGrid.setLabelsBdata(): incorrect labels size");
-            setLabelsBstyles(newStyles);
-            setStyles(buildStyles());
-        }
+        updateData: () => setData(buildData()),
+        updateStyles: () => setStyles(buildStyles())
     }));
 
     return (
@@ -332,7 +226,7 @@ const PuzzleCellGrid = forwardRef<PuzzleCellGridHandle,Props>((props,ref) => {
             data={data}
             cellClick={props.cellClick ?? ((r,c) => {
                 if (in2DArray(r-lT,c-lL,R,C)) // only respond to clicks in the puzzle area
-                    changeSelection(r-lT,c-lL);
+                    changeSelection(r-lT,c-lL,true);
             })}
             tableStyle={props.tableStyle ?? {
                 borderCollapse: "collapse",
