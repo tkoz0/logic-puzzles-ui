@@ -28,7 +28,14 @@ const PuzzleCellGridAreas = forwardRef<PuzzleCellGridAreasHandle,Props>((props,r
     const [areas,setAreas] = useState(props.areas);
 
     useImperativeHandle(ref, () => ({
-        ...(gridRef as unknown as PuzzleCellGridHandle),
+        // inherited
+        getFullData: () => gridRef.current!.getFullData(),
+        getFullStyles: () => gridRef.current!.getFullStyles(),
+        updateData: () => gridRef.current!.updateData(),
+        updateStyles: () => gridRef.current!.updateStyles(),
+        getSelected: () => gridRef.current!.getSelected(),
+        setSelected: (r,c) => gridRef.current!.setSelected(r,c),
+        // extension
         getAreas: () => areas,
         setAreas: newAreas => {
             console.assert(newAreas.length === areas.length
@@ -60,3 +67,4 @@ const PuzzleCellGridAreas = forwardRef<PuzzleCellGridAreasHandle,Props>((props,r
 });
 
 export default PuzzleCellGridAreas;
+export type {PuzzleCellGridAreasHandle, Props as PuzzleCellGridAreasProps};
