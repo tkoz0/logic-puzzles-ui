@@ -13,8 +13,8 @@ interface PuzzleCellGridHandle {
     getFullData: () => ReactElement[][],
     getFullStyles: () => CSS.Properties[][],
     // selected cell
-    getSelection: () => [number,number],
-    setSelection: (r: number, c: number) => void,
+    getSelected: () => [number,number],
+    setSelected: (r: number, c: number) => void,
     // labels data
     getLabelsLdata: () => ReactElement[][],
     getLabelsRdata: () => ReactElement[][],
@@ -88,14 +88,16 @@ const PuzzleCellGrid = forwardRef<PuzzleCellGridHandle,Props>((props,ref) => {
     // arrays passed from parent to allow changing
     const [puzzleData,setPuzzleData] = useState(props.data);
     const [puzzleStyles,setPuzzleStyles] = useState(props.styles);
-    const [labelsLdata, setLabelsLdata] = useState(props.labelsLdata ?? []);
-    const [labelsRdata, setLabelsRdata] = useState(props.labelsRdata ?? []);
-    const [labelsTdata, setLabelsTdata] = useState(props.labelsTdata ?? []);
-    const [labelsBdata, setLabelsBdata] = useState(props.labelsBdata ?? []);
-    const [labelsLstyles, setLabelsLstyles] = useState(props.labelsLstyles ?? []);
-    const [labelsRstyles, setLabelsRstyles] = useState(props.labelsRstyles ?? []);
-    const [labelsTstyles, setLabelsTstyles] = useState(props.labelsTstyles ?? []);
-    const [labelsBstyles, setLabelsBstyles] = useState(props.labelsBstyles ?? []);
+    const [labelsLdata,setLabelsLdata] = useState(props.labelsLdata ?? []);
+    const [labelsRdata,setLabelsRdata] = useState(props.labelsRdata ?? []);
+    const [labelsTdata,setLabelsTdata] = useState(props.labelsTdata ?? []);
+    const [labelsBdata,setLabelsBdata] = useState(props.labelsBdata ?? []);
+    const [labelsLstyles,setLabelsLstyles] = useState(props.labelsLstyles ?? []);
+    const [labelsRstyles,setLabelsRstyles] = useState(props.labelsRstyles ?? []);
+    const [labelsTstyles,setLabelsTstyles] = useState(props.labelsTstyles ?? []);
+    const [labelsBstyles,setLabelsBstyles] = useState(props.labelsBstyles ?? []);
+    // selected cell
+    const [selected,setSelected] = useState<[number,number]>([-1,-1]);
 
     /**
      * @returns 2d array of elements for the table cells
@@ -127,12 +129,19 @@ const PuzzleCellGrid = forwardRef<PuzzleCellGridHandle,Props>((props,ref) => {
             height: (props.heightpx ?? 50)+"px",
             width:  (props.widthpx  ?? 50)+"px"
         }
-        if (in2DArray(gr,gc,R,C))
-            return {
+        if (in2DArray(gr,gc,R,C)) {
+            let style = {
                 ...baseStyle,
                 ...puzzleStyles[gr][gc]
             };
-        else if (r < lT) {
+            if (gr === selected[0] && gc === selected[1])
+                return {
+                    ...style,
+                    ...props.getSelectStyle(gr,gc)
+                }
+            else
+                return style;
+        } else if (r < lT) {
             if (c < lL) return baseStyle;
             else if (gc >= C) return baseStyle;
             else return labelsTstyles?.[r][gc] ?? baseStyle;
@@ -147,7 +156,6 @@ const PuzzleCellGrid = forwardRef<PuzzleCellGridHandle,Props>((props,ref) => {
     }));
 
     // state for the GridTable component
-    const [selected,setSelected] = useState<[number,number]>([-1,-1]);
     const [data,setData] = useState<ReactElement[][]>(buildData());
     const [styles,setStyles] = useState<CSS.Properties[][]>(buildStyles());
 
@@ -166,41 +174,42 @@ const PuzzleCellGrid = forwardRef<PuzzleCellGridHandle,Props>((props,ref) => {
             c = -1;
         }
         // function to make empty styles for when label selection styles are not defined
-        const noStyle = (_r: number, _c: number) =>
-            range(Math.max(lL,lR,lT,lB)).map(_n => ({}));
-        const newStyles = buildStyles();
-        if (in2DArray(r,c,R,C)) {
-            newStyles[lT+r][lL+c] = {
-                ...newStyles[lT+r][lL+c],
-                ...props.getSelectStyle(r,c)
-            }
-            const sL = (props.getSelectStylesL ?? noStyle)(r,c);
-            const sR = (props.getSelectStylesR ?? noStyle)(r,c);
-            const sT = (props.getSelectStylesT ?? noStyle)(r,c);
-            const sB = (props.getSelectStylesB ?? noStyle)(r,c);
-            for (let i = 0; i < lL; ++i)
-                newStyles[lT+r][i] = {
-                    ...newStyles[lT+r][i],
-                    ...sL[i]
-                }
-            for (let i = 0; i < lR; ++i)
-                newStyles[lT+r][lL+C+i] = {
-                    ...newStyles[lT+r][lL+C+i],
-                    ...sR[i]
-                }
-            for (let i = 0; i < lT; ++i)
-                newStyles[i][lL+c] = {
-                    ...newStyles[i][lL+c],
-                    ...sT[i]
-                }
-            for (let i = 0; i < lB; ++i)
-                newStyles[lT+R+i][lL+c] = {
-                    ...newStyles[lT+R+i][lL+c],
-                    ...sB[i]
-                }
-        }
-        setSelected([r,c]);
-        setStyles(newStyles);
+        // const noStyle = (_r: number, _c: number) =>
+        //     range(Math.max(lL,lR,lT,lB)).map(_n => ({}));
+        // const newStyles = buildStyles();
+        // if (in2DArray(r,c,R,C)) {
+        //     newStyles[lT+r][lL+c] = {
+        //         ...newStyles[lT+r][lL+c],
+        //         ...props.getSelectStyle(r,c)
+        //     }
+        //     const sL = (props.getSelectStylesL ?? noStyle)(r,c);
+        //     const sR = (props.getSelectStylesR ?? noStyle)(r,c);
+        //     const sT = (props.getSelectStylesT ?? noStyle)(r,c);
+        //     const sB = (props.getSelectStylesB ?? noStyle)(r,c);
+        //     for (let i = 0; i < lL; ++i)
+        //         newStyles[lT+r][i] = {
+        //             ...newStyles[lT+r][i],
+        //             ...sL[i]
+        //         }
+        //     for (let i = 0; i < lR; ++i)
+        //         newStyles[lT+r][lL+C+i] = {
+        //             ...newStyles[lT+r][lL+C+i],
+        //             ...sR[i]
+        //         }
+        //     for (let i = 0; i < lT; ++i)
+        //         newStyles[i][lL+c] = {
+        //             ...newStyles[i][lL+c],
+        //             ...sT[i]
+        //         }
+        //     for (let i = 0; i < lB; ++i)
+        //         newStyles[lT+R+i][lL+c] = {
+        //             ...newStyles[lT+R+i][lL+c],
+        //             ...sB[i]
+        //         }
+        // }
+        selected[0] = r;
+        selected[1] = c;
+        setStyles(buildStyles());
     };
 
     useEffect(() => {
@@ -258,8 +267,8 @@ const PuzzleCellGrid = forwardRef<PuzzleCellGridHandle,Props>((props,ref) => {
         },
         getFullData: () => data,
         getFullStyles: () => styles,
-        getSelection: () => selected,
-        setSelection: (r: number, c: number) => changeSelection(r,c),
+        getSelected: () => selected,
+        setSelected: (r,c) => changeSelection(r,c),
         getLabelsLdata: () => labelsLdata,
         getLabelsRdata: () => labelsRdata,
         getLabelsTdata: () => labelsTdata,
