@@ -1,4 +1,4 @@
-import {forwardRef, ReactElement, useEffect, useImperativeHandle, useState} from "react";
+import React, {ForwardedRef, forwardRef, ReactElement, useEffect, useImperativeHandle, useState} from "react";
 import CSS from "csstype";
 import GridTable from "./GridTable";
 import {in2DArray, range} from "../utils/ArrayUtils";
@@ -15,12 +15,14 @@ interface PuzzleCellGridHandle {
     setSelected: (r: number, c: number) => void,
 }
 
-interface Props {
-    data: ReactElement[][], // cell contents (R*C)
+interface Props<T> {
+    data: T[][], // cell contents (R*C)
+    display: (r: number, c: number, v: T) => ReactElement, // convert value to HTML
     styles: CSS.Properties[][], // cell styles (R*C)
     getSelectStyle: (r: number, c: number) => CSS.Properties,
     cellWrap?: boolean, // do controls wrap around edges of the grid
     cellClick?: (r: number, c: number) => void, // cell click action
+    keyPress: (key: string) => void, // key press action
     heightpx?: number, // cell height
     widthpx?: number, // cell width
     tableStyle?: CSS.Properties,
@@ -50,7 +52,8 @@ interface Props {
  * functionality for selecting a cell and entering values. Puzzles can
  * optionally have labels on the sides.
  */
-const PuzzleCellGrid = forwardRef<PuzzleCellGridHandle,Props>((props,ref) => {
+const PuzzleCellGrid = <T extends unknown>(props: Props<T>,
+        ref: ForwardedRef<PuzzleCellGridHandle>) => {
     console.assert(props.data.length > 0 && props.data[0].length > 0,
         "PuzzleCellGrid: empty data");
     console.assert(props.styles.length === props.data.length
@@ -74,7 +77,7 @@ const PuzzleCellGrid = forwardRef<PuzzleCellGridHandle,Props>((props,ref) => {
     const buildData = (): ReactElement[][] => range(fR).map(r => range(fC).map(c => {
         const [gr,gc] = [r-lT,c-lL];
         if (in2DArray(gr,gc,R,C))
-            return props.data[gr][gc];
+            return props.display(gr,gc,props.data[gr][gc]);
         else if (r < lT) {
             if (c < lL) return <></>; // top left corner
             else if (gc >= C) return <></> // top right corner
@@ -190,7 +193,7 @@ const PuzzleCellGrid = forwardRef<PuzzleCellGridHandle,Props>((props,ref) => {
                 case "ArrowLeft":  dc = -1; break;
                 case "ArrowRight": dc = +1; break;
                 default:
-                    console.log('TODO: response to other keys not implemented',e.key)
+                    props.keyPress(e.key);
                     return;
             }
             // arrow key was pressed, update position
@@ -237,7 +240,14 @@ const PuzzleCellGrid = forwardRef<PuzzleCellGridHandle,Props>((props,ref) => {
             styles={styles}
         />
     );
-});
+};
 
-export default PuzzleCellGrid;
+// https://fettblog.eu/typescript-react-generic-forward-refs/
+declare module "react" {
+    function forwardRef<T, P = {}>(
+      render: (props: P, ref: React.Ref<T>) => React.ReactElement | null
+    ): (props: P & React.RefAttributes<T>) => React.ReactElement | null;
+}
+
+export default forwardRef(PuzzleCellGrid);
 export type {PuzzleCellGridHandle, Props as PuzzleCellGridProps};

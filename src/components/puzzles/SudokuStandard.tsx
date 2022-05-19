@@ -1,13 +1,13 @@
-import {forwardRef, useImperativeHandle, useState} from "react";
+import {forwardRef, useImperativeHandle, useRef, useState} from "react";
 import CSS from "csstype";
-import PuzzleCellGridAreas from "../PuzzleCellGridAreas";
-import {range} from "../../utils/ArrayUtils";
+import PuzzleCellGridAreas, {PuzzleCellGridAreasHandle} from "../PuzzleCellGridAreas";
+import {in2DArray, range} from "../../utils/ArrayUtils";
 
 interface SudokuStandardHandle {
-    getGrid: () => number[][],
-    setGrid: (newGrid: number[][]) => void,
-    getStyles: () => CSS.Properties[][],
-    setStyles: (newStyles: CSS.Properties[][]) => void
+    setData: (r: number, c: number, n: number) => void,
+    setStyle: (r: number, c: number, s: CSS.Properties) => void,
+    getSelected: () => [number,number],
+    setSelected: (r: number, c: number) => void
 }
 
 interface Props {
@@ -27,8 +27,9 @@ const SudokuStandard = forwardRef<SudokuStandardHandle,Props>((props, ref) => {
     console.assert(props.data.length === N && props.data[0].length === N,
         "SudokuStandard: blockR and blockC do not match data size");
 
-    // numbers on the grid
-    const [grid,setGrid] = useState(props.data.map(row => row.map(n => n)));
+    const gridRef = useRef<PuzzleCellGridAreasHandle>(null);
+
+    const [numData,_setNumData] = useState(props.data.map(row => row.map(n => n)));
 
     // gray background for fixed numbers, white elsewhere
     const [styles,setStyles] = useState<CSS.Properties[][]>(props.puzzle.map(row =>
@@ -44,29 +45,48 @@ const SudokuStandard = forwardRef<SudokuStandardHandle,Props>((props, ref) => {
         })
     );
 
-    useImperativeHandle(ref, () => ({
-        getGrid: () => grid,
-        setGrid: newGrid => {
-            console.assert(newGrid.length === N && newGrid[0].length === N,
-                "SudokuStandard.setGrid(): incorrect grid size");
-            setGrid(newGrid);
-        },
-        getStyles: () => styles,
-        setStyles: newStyles => {
-            console.assert(newStyles.length === N && newStyles[0].length === N,
-                "SudokuStandard.setStyles(): incorrect styles size");
-            setStyles(newStyles);
+    const handleKeypress = (key: string) => {
+        const [sr,sc] = gridRef.current!.getSelected();
+        // modifiable cell selected
+        if (in2DArray(sr,sc,N,N) && props.puzzle[sr][sc] === 0) {
+            let n = -1;
+            if (key === "Backspace" || key === "Delete") {
+                n = 0;
+            } else if ("0123456789".includes(key)) {
+                // append digit and fit in [0,N]
+                const keyNum = Number.parseInt(key);
+                n = numData[sr][sc]*10+keyNum;
+                if (n > N) n = keyNum;
+                if (n > N) n = 0;
+            } else return;
+            numData[sr][sc] = n;
+            gridRef.current!.updateData();
         }
+    };
+
+    useImperativeHandle(ref, () => ({
+        setData: (r,c,n) => {
+            numData[r][c] = n;
+            gridRef.current!.updateData();
+        },
+        setStyle: (r,c,s) => {
+            styles[r][c] = s;
+            gridRef.current!.updateStyles();
+        },
+        getSelected: () => gridRef.current!.getSelected(),
+        setSelected: (r,c) => gridRef.current!.setSelected(r,c)
     }));
 
     return (
-        <PuzzleCellGridAreas
+        <PuzzleCellGridAreas ref={gridRef}
             cellWrap={true}
             heightpx={props.heightpx}
             widthpx={props.widthpx}
-            data={grid.map(row => row.map(n => <>{n !== 0 ? n.toString(): ""}</>))}
+            data={numData}
+            display={(_r,_c,v) => <>{v === 0 ? "" : v.toString()}</>}
             areas={areas}
             styles={styles}
+            keyPress={handleKeypress}
             getSelectStyle={(r: number, c: number) => props.puzzle[r][c] === 0 ?
                 {background:"yellow"} : {background:"orange"}}
         />
