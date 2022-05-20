@@ -79,13 +79,17 @@ const SudokuStandard = forwardRef<SudokuStandardHandle,Props>((props, ref) => {
 
     return (
         <PuzzleCellGridAreas ref={gridRef}
+            rows={N}
+            cols={N}
             cellWrap={true}
             heightpx={props.heightpx}
             widthpx={props.widthpx}
-            data={numData}
-            display={(_r,_c,v) => <>{v === 0 ? "" : v.toString()}</>}
+            getData={(r,c) => {
+                const n = numData[r][c];
+                return <>{n === 0 ? "" : n.toString()}</>;
+            }}
             areas={areas}
-            styles={styles}
+            getStyle={(r,c) => styles[r][c]}
             keyPress={handleKeypress}
             getSelectStyle={(r: number, c: number) => props.puzzle[r][c] === 0 ?
                 {background:"yellow"} : {background:"orange"}}
