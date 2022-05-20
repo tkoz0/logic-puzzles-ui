@@ -1,7 +1,7 @@
 import {forwardRef, useImperativeHandle, useRef, useState} from "react";
 import CSS from "csstype";
-import PuzzleCellGridAreas, {PuzzleCellGridAreasHandle} from "../PuzzleCellGridAreas";
-import {in2DArray, range} from "../../utils/ArrayUtils";
+import PuzzleCellGridAreas, {PuzzleCellGridAreasHandle} from "../components/PuzzleCellGridAreas";
+import {in2DArray, range} from "../utils/ArrayUtils";
 
 interface SudokuStandardHandle {
     setData: (r: number, c: number, n: number) => void,
