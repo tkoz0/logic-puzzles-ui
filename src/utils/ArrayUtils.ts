@@ -37,4 +37,34 @@ const inArray = (index: number, size: number): boolean => 0 <= index && index < 
 const in2DArray = (r: number, c: number, rows: number, cols: number) =>
     inArray(r,rows) && inArray(c,cols);
 
-export {range, inArray, in2DArray};
+/**
+ * Tests if 2 arrays are equal with the same length and elements.
+ * @param a first array
+ * @param b second array
+ * @returns true if they are equal (using ===)
+ */
+const arraysEqual = <T extends unknown>(a: T[], b: T[]): boolean => {
+    if (a.length !== b.length)
+        return false;
+    for (let i = 0; i < a.length; ++i)
+        if (a[i] !== b[i])
+            return false;
+    return true;
+}
+
+/**
+ * Tests if 2 2D arrays have the same shape and elements.
+ * @param a first array
+ * @param b second array
+ * @returns true if they are equal (using ===)
+ */
+const arrays2DEqual = <T extends unknown>(a: T[][], b: T[][]): boolean => {
+    if (a.length !== b.length)
+        return false;
+    for (let i = 0; i < a.length; ++i)
+        if (!arraysEqual(a[i],b[i]))
+            return false;
+    return true;
+};
+
+export {range, inArray, in2DArray, arraysEqual, arrays2DEqual};
