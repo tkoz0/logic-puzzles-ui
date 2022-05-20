@@ -1,4 +1,4 @@
-import {ForwardedRef, forwardRef, Ref, useImperativeHandle, useRef, useState} from "react";
+import {ForwardedRef, forwardRef, useImperativeHandle, useRef, useState} from "react";
 import PuzzleCellGrid, {PuzzleCellGridHandle, PuzzleCellGridProps} from "./PuzzleCellGrid";
 
 // border widths
@@ -31,8 +31,7 @@ const PuzzleCellGridAreas = (props: Props, ref: ForwardedRef<Handle>) => {
         updateData: () => iref.current!.updateData(),
         updateStyles: () => iref.current!.updateStyles(),
         getSelected: () => iref.current!.getSelected(),
-        setSelected: (r,c) => iref.current!.setSelected(r,c),
-        // extension
+        setSelected: (r,c) => iref.current!.setSelected(r,c)
     }));
 
     return (
