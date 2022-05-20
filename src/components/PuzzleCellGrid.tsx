@@ -15,31 +15,37 @@ interface PuzzleCellGridHandle {
     setSelected: (r: number, c: number) => void,
 }
 
-interface Props<T> {
-    data: T[][], // cell contents (R*C)
-    display: (r: number, c: number, v: T) => ReactElement, // convert value to HTML
-    styles: CSS.Properties[][], // cell styles (R*C)
+interface Props {
+    rows: number, // R
+    cols: number, // C
+    getData: (r: number, c: number) => ReactElement,
+    getStyle: (r: number, c: number) => CSS.Properties,
     getSelectStyle: (r: number, c: number) => CSS.Properties,
-    cellWrap?: boolean, // do controls wrap around edges of the grid
+    cellWrap?: boolean, // do arrow controls wrap around edges of the grid
     cellClick?: (r: number, c: number) => void, // cell click action
     keyPress: (key: string) => void, // key press action
     heightpx?: number, // cell height
     widthpx?: number, // cell width
     tableStyle?: CSS.Properties,
-    // label data/styles, number of rows is how many labels (any integers lL,lR,lT,lB)
+    // label data/styles for left (L), right (R), top (T), bottom (B)
+    // example: lL >= 0 labels per row, indexed by [0,lL) x [0,R)
     // rows and row contents are ordered left to right or top to bottom
-    labelsLdata?: ReactElement[][], // lL*R
-    labelsLstyles?: CSS.Properties[][],
-    getSelectStylesL?: (r: number, c: number) => CSS.Properties[], // lL
-    labelsRdata?: ReactElement[][], // lR*R
-    labelsRstyles?: CSS.Properties[][],
-    getSelectStylesR?: (r: number, c: number) => CSS.Properties[], // lR
-    labelsTdata?: ReactElement[][], // lT*C
-    labelsTstyles?: CSS.Properties[][],
-    getSelectStylesT?: (r: number, c: number) => CSS.Properties[], // lT
-    labelsBdata?: ReactElement[][], // lB*C
-    labelsBstyles?: CSS.Properties[][],
-    getSelectStylesB?: (r: number, c: number) => CSS.Properties[] // lB
+    labelsL?: number, // lL*R
+    getLData?: (l: number, r: number) => ReactElement,
+    getLStyle?: (l: number, r: number) => CSS.Properties,
+    getLSelectStyle?: (l: number, r: number) => CSS.Properties,
+    labelsR?: number, // lR*R
+    getRData?: (l: number, r: number) => ReactElement,
+    getRStyle?: (l: number, r: number) => CSS.Properties,
+    getRSelectStyle?: (l: number, r: number) => CSS.Properties,
+    labelsT?: number, // lT*C
+    getTData?: (l: number, c: number) => ReactElement,
+    getTStyle?: (l: number, c: number) => CSS.Properties,
+    getTSelectStyle?: (l: number, c: number) => CSS.Properties,
+    labelsB?: number, // lB*C
+    getBData?: (l: number, c: number) => ReactElement,
+    getBStyle?: (l: number, c: number) => CSS.Properties,
+    getBSelectStyle?: (l: number, c: number) => CSS.Properties
     // TODO (R+1)*(C+1) grid for corner points
     // (R+1)*C for horizontal middle points
     // R*(C+1) for vertical middle points
@@ -52,20 +58,15 @@ interface Props<T> {
  * functionality for selecting a cell and entering values. Puzzles can
  * optionally have labels on the sides.
  */
-const PuzzleCellGrid = <T extends unknown>(props: Props<T>,
+const PuzzleCellGrid = (props: Props,
         ref: ForwardedRef<PuzzleCellGridHandle>) => {
-    console.assert(props.data.length > 0 && props.data[0].length > 0,
-        "PuzzleCellGrid: empty data");
-    console.assert(props.styles.length === props.data.length
-        && props.styles[0].length === props.data[0].length,
-        "PuzzleCellGrid: mismatched data and styles sizes");
-    // array dimensions
-    const R = props.data.length; // rows
-    const C = props.data[0].length; // cols
-    const lL = props.labelsLdata?.length ?? 0; // number of labels
-    const lR = props.labelsRdata?.length ?? 0;
-    const lT = props.labelsTdata?.length ?? 0;
-    const lB = props.labelsBdata?.length ?? 0;
+    // convenient array dimensions
+    const R = props.rows; // rows
+    const C = props.cols; // cols
+    const lL = props.labelsL ?? 0; // number of labels
+    const lR = props.labelsR ?? 0;
+    const lT = props.labelsT ?? 0;
+    const lB = props.labelsB ?? 0;
     const fR = R+lT+lB; // full size of table with labels included
     const fC = C+lL+lR;
     // selected cell
@@ -77,18 +78,18 @@ const PuzzleCellGrid = <T extends unknown>(props: Props<T>,
     const buildData = (): ReactElement[][] => range(fR).map(r => range(fC).map(c => {
         const [gr,gc] = [r-lT,c-lL];
         if (in2DArray(gr,gc,R,C))
-            return props.display(gr,gc,props.data[gr][gc]);
+            return props.getData(gr,gc);
         else if (r < lT) {
             if (c < lL) return <></>; // top left corner
             else if (gc >= C) return <></> // top right corner
-            else return props.labelsTdata?.[r][gc] ?? <></>; // top labels
+            else return props.getTData?.(r,gc) ?? <></>; // top labels
         } else if (gr >= R) {
             if (c < lL) return <></>; // bottom left corner
             else if (gc >= C) return <></>; // top right corner
-            else return props.labelsBdata?.[gr-R][gc] ?? <></>; // bottom labels
+            else return props.getBData?.(gr-R,gc) ?? <></>; // bottom labels
         } else { // middle section
-            if (c < lL) return props.labelsLdata?.[c][gr] ?? <></>; // left labels
-            else return props.labelsRdata?.[gc-C][gr] ?? <></>; // right labels
+            if (c < lL) return props.getLData?.(c,gr) ?? <></>; // left labels
+            else return props.getRData?.(gc-C,gr) ?? <></>; // right labels
         }
     }));
 
@@ -104,51 +105,35 @@ const PuzzleCellGrid = <T extends unknown>(props: Props<T>,
         const noStyle = (_r: number, _c: number) =>
             range(Math.max(lL,lR,lT,lB)).map(_n => ({}));
         if (in2DArray(gr,gc,R,C)) {
-            style = { // add cell style
-                ...style,
-                ...props.styles[gr][gc]
-            };
+            style = { ...style, ...props.getStyle(gr,gc) };
             if (gr === selected[0] && gc === selected[1]) // add select style
-                return {
-                    ...style,
-                    ...props.getSelectStyle(gr,gc)
-                }
-            else
-                return style;
+                style = { ...style, ...props.getSelectStyle(gr,gc) };
         } else if (r < lT) {
             if (c < lL) {} // top left
             else if (gc >= C) {} // top right
             else { // top
-                style = { ...style, ...props.labelsTstyles?.[r][gc] }
-                if (gc === selected[1]) {
-                    let sT = (props.getSelectStylesL ?? noStyle)(gr,gc);
-                    style = { ...style, ...sT[r] };
-                }
+                style = { ...style, ...props.getTStyle?.(r,gc) }
+                if (gc === selected[1])
+                    style = { ...style, ...props.getTSelectStyle?.(r,gc) };
             };
         } else if (gr >= R) {
             if (c < lL) {} // bottom left
             else if (gc >= C) {} // bottom right
             else { // bottom
-                style = { ...style, ...props.labelsBstyles?.[gr-R][gc] };
-                if (gc === selected[1]) {
-                    let sB = (props.getSelectStylesB ?? noStyle)(gr,gc);
-                    style = { ...style, ...sB[gr-R] };
-                }
+                style = { ...style, ...props.getBStyle?.(gr-R,gc) };
+                if (gc === selected[1])
+                    style = { ...style, ...props.getBSelectStyle?.(gr-R,gc) };
             }
         } else {
             if (c < lL) { // left
-                style = { ...style, ...props.labelsLstyles?.[c][gr] };
-                if (gr === selected[0]) {
-                    let sL = (props.getSelectStylesL ?? noStyle)(gr,gc);
-                    style = { ...style, ...sL[c] };
-                }
+                style = { ...style, ...props.getLStyle?.(c,gr) };
+                if (gr === selected[0])
+                    style = { ...style, ...props.getLSelectStyle?.(c,gr) };
             }
             else { // right
-                style = { ...style, ...props.labelsRstyles?.[gc-C][gr] };
-                if (gr === selected[0]) {
-                    let sR = (props.getSelectStylesR ?? noStyle)(gr,gc);
-                    style = { ...style, ...sR[gc-C] };
-                }
+                style = { ...style, ...props.getRStyle?.(gc-C,gr) };
+                if (gr === selected[0])
+                    style = { ...style, ...props.getRSelectStyle?.(gc-C,gr) };
             }
         }
         return style;
