@@ -5,7 +5,7 @@ import PuzzleCellGrid, {PuzzleCellGridHandle, PuzzleCellGridProps} from "./Puzzl
 const B_THIN = 1;
 const B_THICK = 3;
 
-interface PuzzleCellGridAreasHandle extends PuzzleCellGridHandle {
+interface Handle extends PuzzleCellGridHandle {
 }
 
 interface Props extends PuzzleCellGridProps {
@@ -18,12 +18,11 @@ interface Props extends PuzzleCellGridProps {
 /**
  * Extends PuzzleGrid by supporting areas and handling drawing the borders.
  */
-const PuzzleCellGridAreas = (props: Props,
-        ref: ForwardedRef<PuzzleCellGridAreasHandle>) => {
+const PuzzleCellGridAreas = (props: Props, ref: ForwardedRef<Handle>) => {
     const R = props.rows;
     const C = props.cols;
     const iref = useRef<PuzzleCellGridHandle>(null);
-    const [areas,setAreas] = useState(props.areas);
+    const [areas,_setAreas] = useState(props.areas);
 
     useImperativeHandle(ref, () => ({
         // inherited
@@ -66,4 +65,4 @@ declare module "react" {
 }
 
 export default forwardRef(PuzzleCellGridAreas);
-export type {PuzzleCellGridAreasHandle, Props as PuzzleCellGridAreasProps};
+export type {Handle as PuzzleCellGridAreasHandle, Props as PuzzleCellGridAreasProps};

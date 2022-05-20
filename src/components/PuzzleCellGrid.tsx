@@ -3,7 +3,7 @@ import CSS from "csstype";
 import GridTable from "./GridTable";
 import {in2DArray, range} from "../utils/ArrayUtils";
 
-interface PuzzleCellGridHandle {
+interface Handle {
     // main internal representation
     getFullData: () => ReactElement[][],
     getFullStyles: () => CSS.Properties[][],
@@ -29,7 +29,8 @@ interface Props {
     tableStyle?: CSS.Properties,
     // label data/styles for left (L), right (R), top (T), bottom (B)
     // example: lL >= 0 labels per row, indexed by [0,lL) x [0,R)
-    // rows and row contents are ordered left to right or top to bottom
+    // label number (l) is ordered from left to right or top to bottom
+    // the row or column specified is the row or column it is a label for
     labelsL?: number, // lL*R
     getLData?: (l: number, r: number) => ReactElement,
     getLStyle?: (l: number, r: number) => CSS.Properties,
@@ -45,7 +46,18 @@ interface Props {
     labelsB?: number, // lB*C
     getBData?: (l: number, c: number) => ReactElement,
     getBStyle?: (l: number, c: number) => CSS.Properties,
-    getBSelectStyle?: (l: number, c: number) => CSS.Properties
+    getBSelectStyle?: (l: number, c: number) => CSS.Properties,
+    // corner data/styles for up left (UL), up right (UR), low left (LL), low right (LR)
+    // these are ordered in standard 2d grid orientation
+    // example: [0,lL) x [0,lT) for upper left
+    getULData?: (r: number, c: number) => ReactElement, // lL*lT
+    getULStyle?: (r: number, c: number) => CSS.Properties,
+    getURData?: (r: number, c: number) => ReactElement, // lR*lT
+    getURStyle?: (r: number, c: number) => CSS.Properties,
+    getLLData?: (r: number, c: number) => ReactElement, // lL*lB
+    getLLStyle?: (r: number, c: number) => CSS.Properties,
+    getLRData?: (r: number, c: number) => ReactElement, // lR*lB
+    getLRStyle?: (r: number, c: number) => CSS.Properties
     // TODO (R+1)*(C+1) grid for corner points
     // (R+1)*C for horizontal middle points
     // R*(C+1) for vertical middle points
@@ -58,8 +70,7 @@ interface Props {
  * functionality for selecting a cell and entering values. Puzzles can
  * optionally have labels on the sides.
  */
-const PuzzleCellGrid = (props: Props,
-        ref: ForwardedRef<PuzzleCellGridHandle>) => {
+const PuzzleCellGrid = (props: Props, ref: ForwardedRef<Handle>) => {
     // convenient array dimensions
     const R = props.rows; // rows
     const C = props.cols; // cols
@@ -80,12 +91,12 @@ const PuzzleCellGrid = (props: Props,
         if (in2DArray(gr,gc,R,C))
             return props.getData(gr,gc);
         else if (r < lT) {
-            if (c < lL) return <></>; // top left corner
-            else if (gc >= C) return <></> // top right corner
+            if (c < lL) return props.getULData?.(r,c) ?? <></>; // top left corner
+            else if (gc >= C) return props.getURData?.(r,gc-C) ?? <></> // top right corner
             else return props.getTData?.(r,gc) ?? <></>; // top labels
         } else if (gr >= R) {
-            if (c < lL) return <></>; // bottom left corner
-            else if (gc >= C) return <></>; // top right corner
+            if (c < lL) return props.getLLData?.(gr-R,c) ?? <></>; // bottom left corner
+            else if (gc >= C) return props.getLRData?.(gr-R,gc-C) ?? <></>; // bottom right corner
             else return props.getBData?.(gr-R,gc) ?? <></>; // bottom labels
         } else { // middle section
             if (c < lL) return props.getLData?.(c,gr) ?? <></>; // left labels
@@ -109,16 +120,20 @@ const PuzzleCellGrid = (props: Props,
             if (gr === selected[0] && gc === selected[1]) // add select style
                 style = { ...style, ...props.getSelectStyle(gr,gc) };
         } else if (r < lT) {
-            if (c < lL) {} // top left
-            else if (gc >= C) {} // top right
+            if (c < lL) // top left
+                style = { ...style, ...props.getULStyle?.(r,c) };
+            else if (gc >= C) // top right
+                style = { ...style, ...props.getURStyle?.(r,gc-C) };
             else { // top
                 style = { ...style, ...props.getTStyle?.(r,gc) }
                 if (gc === selected[1])
                     style = { ...style, ...props.getTSelectStyle?.(r,gc) };
             };
         } else if (gr >= R) {
-            if (c < lL) {} // bottom left
-            else if (gc >= C) {} // bottom right
+            if (c < lL) // bottom left
+                style = { ...style, ...props.getLLStyle?.(gr-R,c) };
+            else if (gc >= C) // bottom right
+                style = { ...style, ...props.getLRStyle?.(gr-R,gc-C) };
             else { // bottom
                 style = { ...style, ...props.getBStyle?.(gr-R,gc) };
                 if (gc === selected[1])
@@ -200,6 +215,7 @@ const PuzzleCellGrid = (props: Props,
         return () => document.removeEventListener("keydown",keyEvent);
     });
 
+    // functions client may use
     useImperativeHandle(ref, () => ({
         getFullData: () => data,
         getFullStyles: () => styles,
@@ -235,4 +251,4 @@ declare module "react" {
 }
 
 export default forwardRef(PuzzleCellGrid);
-export type {PuzzleCellGridHandle, Props as PuzzleCellGridProps};
+export type {Handle as PuzzleCellGridHandle, Props as PuzzleCellGridProps};
