@@ -14,7 +14,7 @@ interface Props extends PuzzleGridCellsProps {
 }
 
 /**
- * Extends PuzzleGrid by supporting areas and handling drawing the borders.
+ * Extends PuzzleGridCells by supporting areas and handling drawing the borders.
  */
 const PuzzleCellGridAreas = (props: Props, ref: ForwardedRef<Handle>) => {
 
