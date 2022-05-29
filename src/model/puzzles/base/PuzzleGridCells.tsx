@@ -19,6 +19,9 @@ interface Props extends PuzzleGridProps {
     keyPress?: (e: KeyboardEvent) => void
 }
 
+/**
+ * Provides functionality to select a cell with arrow keys or left click.
+ */
 const PuzzleGridCells = (props: Props, ref: ForwardedRef<Handle>) => {
 
     const R = props.rows;
@@ -57,6 +60,8 @@ const PuzzleGridCells = (props: Props, ref: ForwardedRef<Handle>) => {
                     props.keyPress?.(e);
                     return;
             }
+            if (e.ctrlKey || e.altKey || e.shiftKey)
+                return;
             if (dr !== 0 || dc !== 0)
                 e.preventDefault();
             let nr = -1;
