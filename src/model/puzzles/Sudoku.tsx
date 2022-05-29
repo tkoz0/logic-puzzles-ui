@@ -1,25 +1,21 @@
 import {forwardRef, useImperativeHandle, useRef, useState} from "react";
 import CSS from "csstype";
-import PuzzleCellGridAreas, {PuzzleCellGridAreasHandle} from "../components/PuzzleCellGridAreas";
-import {in2DArray, range} from "../utils/ArrayUtils";
+import PuzzleGridCellsAreas, {PuzzleGridCellsAreasHandle} from "./base/PuzzleGridCellsAreas";
+import {in2DArray, range} from "../../utils/ArrayUtils";
+import {BasicCellsHandle} from "../../utils/PuzzleComponentUtils";
 
-interface SudokuStandardHandle {
-    setData: (r: number, c: number, n: number) => void,
-    setStyle: (r: number, c: number, s: CSS.Properties) => void,
-    getSelected: () => [number,number],
-    setSelected: (r: number, c: number) => void
-}
+type SudokuHandle = BasicCellsHandle<number>;
 
 interface Props {
-    blockR: number,
-    blockC: number,
-    data: number[][],
-    heightpx: number,
-    puzzle: number[][],
-    widthpx: number
+    blockR:    number,
+    blockC:    number,
+    data:      number[][],
+    puzzle:    number[][],
+    heightpx?: number,
+    widthpx?:  number
 }
 
-const SudokuStandard = forwardRef<SudokuStandardHandle,Props>((props, ref) => {
+const Sudoku = forwardRef<SudokuHandle,Props>((props, ref) => {
 
     // side length of the grid
     const N = props.blockR*props.blockC;
@@ -27,12 +23,12 @@ const SudokuStandard = forwardRef<SudokuStandardHandle,Props>((props, ref) => {
     console.assert(props.data.length === N && props.data[0].length === N,
         "SudokuStandard: blockR and blockC do not match data size");
 
-    const gridRef = useRef<PuzzleCellGridAreasHandle>(null);
+    const iref = useRef<PuzzleGridCellsAreasHandle>(null);
 
-    const [numData,_setNumData] = useState(props.data.map(row => row.map(n => n)));
+    const [numData] = useState(props.data.map(row => row.map(n => n)));
 
     // gray background for fixed numbers, white elsewhere
-    const [styles,setStyles] = useState<CSS.Properties[][]>(props.puzzle.map(row =>
+    const [styles] = useState<CSS.Properties[][]>(props.puzzle.map(row =>
         row.map(n => ({background: n !== 0 ? "lightgray" : "white"}))
     ));
 
@@ -45,8 +41,9 @@ const SudokuStandard = forwardRef<SudokuStandardHandle,Props>((props, ref) => {
         })
     );
 
-    const handleKeypress = (key: string) => {
-        const [sr,sc] = gridRef.current!.getSelected();
+    const handleKeypress = (e: KeyboardEvent) => {
+        const key = e.key;
+        const [sr,sc] = iref.current!.getSelected();
         // modifiable cell selected
         if (in2DArray(sr,sc,N,N) && props.puzzle[sr][sc] === 0) {
             let n = -1;
@@ -60,25 +57,27 @@ const SudokuStandard = forwardRef<SudokuStandardHandle,Props>((props, ref) => {
                 if (n > N) n = 0;
             } else return;
             numData[sr][sc] = n;
-            gridRef.current!.updateData();
+            iref.current!.updateData();
         }
     };
 
     useImperativeHandle(ref, () => ({
         setData: (r,c,n) => {
             numData[r][c] = n;
-            gridRef.current!.updateData();
+            iref.current!.updateData();
         },
         setStyle: (r,c,s) => {
             styles[r][c] = s;
-            gridRef.current!.updateStyles();
+            iref.current!.updateStyles();
         },
-        getSelected: () => gridRef.current!.getSelected(),
-        setSelected: (r,c) => gridRef.current!.setSelected(r,c)
+        getData: () => numData,
+        getStyles: () => styles,
+        getSelected: () => iref.current!.getSelected(),
+        setSelected: (r,c) => iref.current!.setSelected(r,c)
     }));
 
     return (
-        <PuzzleCellGridAreas ref={gridRef}
+        <PuzzleGridCellsAreas ref={iref}
             rows={N}
             cols={N}
             cellWrap={true}
@@ -89,13 +88,13 @@ const SudokuStandard = forwardRef<SudokuStandardHandle,Props>((props, ref) => {
                 return <>{n === 0 ? "" : n.toString()}</>;
             }}
             areas={areas}
-            getStyle={(r,c) => styles[r][c]}
+            getStyle={(r,c) => ({background:props.puzzle[r][c]!==0?"lightgray":"white"})}
             keyPress={handleKeypress}
-            getSelectStyle={(r: number, c: number) => props.puzzle[r][c] === 0 ?
-                {background:"yellow"} : {background:"orange"}}
+            getSelectStyle={(r,c) => ({background:props.puzzle[r][c]===0?"yellow":"orange"})}
+            leftClick={(r,c) => iref.current!.setSelected(r,c)}
         />
     );
 });
 
-export default SudokuStandard;
-export type {SudokuStandardHandle};
+export default Sudoku;
+export type {SudokuHandle};

@@ -1,16 +1,14 @@
-import {ForwardedRef, forwardRef, useImperativeHandle, useRef, useState} from "react";
-import PuzzleCellGrid, {PuzzleCellGridHandle, PuzzleCellGridProps} from "./PuzzleCellGrid";
+import {ForwardedRef, forwardRef, useImperativeHandle, useRef} from "react";
+import CSS from "csstype";
+import {DEFAULT_BORDER_THICK, DEFAULT_BORDER_THIN} from "../../../utils/Constants";
+import PuzzleGridCells, {PuzzleGridCellsHandle, PuzzleGridCellsProps} from "./PuzzleGridCells";
 
-// border widths
-const B_THIN = 1;
-const B_THICK = 3;
-
-interface Handle extends PuzzleCellGridHandle {
+interface Handle extends PuzzleGridCellsHandle {
 }
 
-interface Props extends PuzzleCellGridProps {
-    // extension to PuzzleCellGrid
+interface Props extends PuzzleGridCellsProps {
     areas: number[][],
+    areaStyles?: Map<number,CSS.Properties>,
     borderThick?: string,
     borderThin?: string
 }
@@ -19,36 +17,38 @@ interface Props extends PuzzleCellGridProps {
  * Extends PuzzleGrid by supporting areas and handling drawing the borders.
  */
 const PuzzleCellGridAreas = (props: Props, ref: ForwardedRef<Handle>) => {
+
     const R = props.rows;
     const C = props.cols;
-    const iref = useRef<PuzzleCellGridHandle>(null);
-    const [areas,_setAreas] = useState(props.areas);
+    const iref = useRef<PuzzleGridCellsHandle>(null);
+    const bthick = props.borderThick ?? DEFAULT_BORDER_THICK+"px solid black";
+    const bthin  = props.borderThin  ?? DEFAULT_BORDER_THIN +"px solid black";
+    const A = props.areas;
 
     useImperativeHandle(ref, () => ({
-        // inherited
         getFullData: () => iref.current!.getFullData(),
         getFullStyles: () => iref.current!.getFullStyles(),
         updateData: () => iref.current!.updateData(),
         updateStyles: () => iref.current!.updateStyles(),
         getSelected: () => iref.current!.getSelected(),
-        setSelected: (r,c) => iref.current!.setSelected(r,c)
+        setSelected: (r: number, c: number) => iref.current!.setSelected(r,c)
     }));
 
     return (
-        <PuzzleCellGrid ref={iref}
+        <PuzzleGridCells ref={iref}
             {...props}
             getStyle={(r,c) => {
-                const bthick = props.borderThick ?? B_THICK+"px solid black";
-                const bthin  = props.borderThin  ?? B_THIN +"px solid black";
-                const bl = (c === 0   || areas[r][c] !== areas[r][c-1]) ? bthick : bthin;
-                const br = (c+1 === C || areas[r][c] !== areas[r][c+1]) ? bthick : bthin;
-                const bt = (r === 0   || areas[r][c] !== areas[r-1][c]) ? bthick : bthin;
-                const bb = (r+1 === R || areas[r][c] !== areas[r+1][c]) ? bthick : bthin;
+                const as = props.areaStyles?.get(A[r][c]);
+                const bl = (c === 0   || A[r][c] !== A[r][c-1]) ? bthick : bthin;
+                const br = (c+1 === C || A[r][c] !== A[r][c+1]) ? bthick : bthin;
+                const bt = (r === 0   || A[r][c] !== A[r-1][c]) ? bthick : bthin;
+                const bb = (r+1 === R || A[r][c] !== A[r+1][c]) ? bthick : bthin;
                 return {
                     borderLeft:   bl,
                     borderRight:  br,
                     borderTop:    bt,
                     borderBottom: bb,
+                    ...as,
                     ...props.getStyle(r,c)
                 };
             }}
@@ -64,4 +64,4 @@ declare module "react" {
 }
 
 export default forwardRef(PuzzleCellGridAreas);
-export type {Handle as PuzzleCellGridAreasHandle, Props as PuzzleCellGridAreasProps};
+export type {Handle as PuzzleGridCellsAreasHandle, Props as PuzzleGridCellsAreasProps};
